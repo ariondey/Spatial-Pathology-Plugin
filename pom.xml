@@ -13,12 +13,12 @@
 	</parent>
 
 	<groupId>com.mycompany</groupId>        <!-- FIXME: Your organization groupId here -->
-	<artifactId>GaussFiltering</artifactId> <!-- FIXME: Your project artifactId here   -->
+	<artifactId>SpatialPathologyPlugin</artifactId> <!-- FIXME: Your project artifactId here   -->
 	<version>0.1.0-SNAPSHOT</version>
 
-	<name>Gauss Filtering</name>                                               <!-- FIXME: Your project name here          -->
+	<name>SpatialPathologyPlugin</name>                                               <!-- FIXME: Your project name here          -->
 	<description>A Maven project implementing an ImageJ command.</description> <!-- FIXME: Your project description here   -->
-	<url>https://mycompany.com/imagej/gauss-filtering/</url>                   <!-- FIXME: Your project website here       -->
+	<url>https://mycompany.com/imagej/SpatialPathologyPlugin/</url>                   <!-- FIXME: Your project website here       -->
 	<inceptionYear>2017</inceptionYear>                                        <!-- FIXME: Your project starting year here -->
 	<organization>
 		<name>My Company</name>           <!-- FIXME: Your organization name here    -->
@@ -78,7 +78,7 @@
 
 	<properties>
 		<package-name>com.mycompany.imagej</package-name>                   <!-- FIXME: Your project package prefix here -->
-		<main-class>com.mycompany.imagej.GaussFiltering</main-class>        <!-- FIXME: Your project main class here, or delete for none -->
+		<main-class></main-class>        <!-- FIXME: Your project main class here, or delete for none -->
 		<license.licenseName>cc0</license.licenseName>                      <!-- FIXME: Your license-maven-plugin license code here -->
 		<license.copyrightOwners>My Company, Inc.</license.copyrightOwners> <!-- FIXME: Your organization legal entity name here -->
 	</properties>
@@ -95,5 +95,23 @@
 			<groupId>net.imagej</groupId>
 			<artifactId>imagej</artifactId>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/net.imagej/imagej-legacy -->
+<dependency>
+    <groupId>net.imagej</groupId>
+    <artifactId>imagej-legacy</artifactId>
+    </dependency>
+		<!-- https://mvnrepository.com/artifact/org.apache.poi/poi -->
+<dependency>
+    <groupId>org.apache.poi</groupId>
+    <artifactId>poi</artifactId>
+    <version>5.2.3</version>
+</dependency>
+		<!-- https://mvnrepository.com/artifact/org.apache.poi/poi-ooxml -->
+<dependency>
+    <groupId>org.apache.poi</groupId>
+    <artifactId>poi-ooxml</artifactId>
+    <version>5.2.3</version>
+</dependency>
+		
 	</dependencies>
 </project>
