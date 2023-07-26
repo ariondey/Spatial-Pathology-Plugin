@@ -1,4 +1,3 @@
-package com.mycompany.imagej;
 import static java.lang.Math.sqrt;
 import java.io.*;
 import java.awt.Color;
@@ -19,10 +18,8 @@ import ij.gui.WaitForUserDialog;
 import ij.io.OpenDialog;
 import ij.measure.ResultsTable;
 import ij.plugin.PlugIn;
-import ij.plugin.filter.PlugInFilter;
 import ij.plugin.frame.RoiManager;
 import ij.process.FloatPolygon;
-import ij.process.ImageProcessor;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.hssf.usermodel.HSSFRow;
@@ -54,7 +51,7 @@ import javax.swing.JOptionPane;
 import ij.io.DirectoryChooser;
 import ij.io.FileSaver;
 
-public class SpatialPathologyPlugin_ implements PlugIn, PlugInFilter {
+public class SpatialPathologyIJMJava_ implements PlugIn {
 
 	// Settings. Edit to change from default values. ///////////////////////////////
 	// These are safely editable by the user
@@ -87,7 +84,7 @@ public class SpatialPathologyPlugin_ implements PlugIn, PlugInFilter {
 	public String selectedFolderPath;
 	public Integer generateHistogramFlag = 0;
 	public boolean notConclusionRun = true;
-	public double BincountZeroHisto = 0;
+	public double BincountHisto = 0;
 	public double BincountZeroPointOneHisto = 0;
 	public double BincountZeroPointTwoHisto = 0;
 	public double BincountZeroPointThreeHisto = 0;
@@ -100,10 +97,43 @@ public class SpatialPathologyPlugin_ implements PlugIn, PlugInFilter {
 	public double BincountOnePointZeroHisto = 0;
 	public boolean lineInputIsCSV;
 	public String outputFileNameTS;
+	public double chosenInterval = 0;
+	public double[] globalBinCountArray;
 	////////////////////////////////////////////////////////////////////////////////
 
 	@Override
 	public void run(String arg) {
+		double start = 0;
+		double end = 1.0;
+		boolean isValidInput = false;
+       
+		  while (!isValidInput) {
+	            try {
+	                String intervalInput = JOptionPane.showInputDialog(null, "Enter the chosen interval between " + start + " and " + end + ":");
+	                if (intervalInput == null) {
+	                    // User clicked cancel or closed the dialog
+	                    System.exit(0);
+	                }
+
+	                chosenInterval = Double.parseDouble(intervalInput);
+
+	                if (chosenInterval < start || chosenInterval > end) {
+	                    throw new IllegalArgumentException("The chosen interval must be between " + start + " and " + end + ".");
+	                }
+
+	                isValidInput = true;
+	            } catch (NumberFormatException e) {
+	                JOptionPane.showMessageDialog(null, "Invalid input! Please enter a valid integer.", "Error", JOptionPane.ERROR_MESSAGE);
+	            } catch (IllegalArgumentException e) {
+	                JOptionPane.showMessageDialog(null, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+	            }
+	        }
+
+	        // At this point, chosenInterval is valid, and you can use it as needed.
+	        System.out.println("Chosen interval: " + chosenInterval);
+	      
+	        System.out.println("array global size" + ((double) 1.0 / chosenInterval ));
+	        globalBinCountArray = new double[(int) ((double) 1.0 / chosenInterval )];
 		outputFileNameTS = makeOutputFileNameTS();
 
 		// Control Variable for the repeat of the macro
@@ -215,7 +245,7 @@ public class SpatialPathologyPlugin_ implements PlugIn, PlugInFilter {
 					ImagePlus imagePlus1 = WindowManager.getCurrentImage();
 					Roi result = imagePlus1.getRoi();
 
-					if (result != null && result.getType() == Roi.POLYLINE) {
+					if (result != null && (result.getType() == Roi.POLYLINE || result.getType() == Roi.FREELINE)) {
 						// Get the polygon representing the line
 						FloatPolygon linePolygon = result.getInterpolatedPolygon();
 
@@ -320,7 +350,7 @@ public class SpatialPathologyPlugin_ implements PlugIn, PlugInFilter {
 							"Please draw line 2 (the top line), \n This macro will not proceed unless a segmented line or freehand line is selected")
 							.show();
 					Roi result = IJ.getImage().getRoi();
-					if (result != null && result.getType() == Roi.POLYLINE) {
+					if (result != null && (result.getType() == Roi.POLYLINE || result.getType() == Roi.FREELINE)) {
 						// Get the polygon representing the line
 						FloatPolygon linePolygon2 = result.getInterpolatedPolygon();
 
@@ -464,6 +494,7 @@ public class SpatialPathologyPlugin_ implements PlugIn, PlugInFilter {
 
 				roiManager.addRoi(manualPointRoi);
 				roiManager.setVisible(true);
+				roiManager.close();
 
 				float[] xUserPlacedCoords = floatPolygon.xpoints;
 				float[] yUserPlacedCoords = floatPolygon.ypoints;
@@ -484,7 +515,7 @@ public class SpatialPathologyPlugin_ implements PlugIn, PlugInFilter {
 
 				}
 			}
-
+			
 			DirectoryChooser directoryChooserImage = new DirectoryChooser("Select Folder to save your drawn Image");
 			String savedImageFilePath = directoryChooserImage.getDirectory();
 			// SimpleDateFormat is not thread safe, careful when using multithreading
@@ -636,12 +667,13 @@ public class SpatialPathologyPlugin_ implements PlugIn, PlugInFilter {
 			// boolean repeatInput = repeatPrompt.getNextBoolean();
 			if (repeatInput) {
 				// Yes Repeat
-				ApachePoiLineChart();
+				ApachePoiLineChart(chosenInterval);
+				
 				repeatFlag = 1;
 			} else {
 				// No repeat
 				notConclusionRun = false;
-				ApachePoiLineChart();
+				ApachePoiLineChart(chosenInterval);
 				repeatFlag = 0;
 			}
 
@@ -665,7 +697,7 @@ public class SpatialPathologyPlugin_ implements PlugIn, PlugInFilter {
 //		return anOutputFileName;
 //	}
 
-	public void ApachePoiLineChart() {
+	public void ApachePoiLineChart(double chosenInterval) {
 		// Create a DirectoryChooser to prompt the user for a folder
 		DirectoryChooser directoryChooser = new DirectoryChooser("Select Folder to save your Histogram and bincount");
 
@@ -695,307 +727,51 @@ public class SpatialPathologyPlugin_ implements PlugIn, PlugInFilter {
 			System.out.println("LineChartIterationCount is" + lineChartIterationCount);
 			// Bin Ranges (x axis)
 			Row row = sheet.createRow((short) 0);
-			Cell cell = row.createCell((short) 0);
-			cell.setCellValue("0");
-
-			cell = row.createCell((short) 1);
-			cell.setCellValue("0.1");
-
-			cell = row.createCell((short) 2);
-			cell.setCellValue("0.2");
-
-			cell = row.createCell((short) 3);
-			cell.setCellValue("0.3");
-
-			cell = row.createCell((short) 4);
-			cell.setCellValue("0.4");
-
-			cell = row.createCell((short) 5);
-			cell.setCellValue("0.5");
-
-			cell = row.createCell((short) 6);
-			cell.setCellValue("0.6");
-
-			cell = row.createCell((short) 7);
-			cell.setCellValue("0.7");
-
-			cell = row.createCell((short) 8);
-			cell.setCellValue("0.8");
-
-			cell = row.createCell((short) 9);
-			cell.setCellValue("0.9");
-
-			cell = row.createCell((short) 10);
-			cell.setCellValue("1.0");
-
-			for (int i = 1; i < userPickedXCoordsGlobal.length + 1; i++) {
-				if ((bottomLineArrayDistancesGlobal[i - 1]
-						/ (bottomLineArrayDistancesGlobal[i - 1] + topLineArrayDistancesGlobal[i - 1])) < 0.1) {
-					/*
-					 * for(int k = 1; k < 99; k++) { XSSFRow myRow = sheet.getRow(k);
-					 * if(checkIfRowIsEmpty(myRow)) { if(myRow == null) { myRow=sheet.createRow(k);
-					 * } cell = myRow.createCell((short) 0);
-					 * cell.setCellValue(bottomLineArrayDistancesGlobal[i-1] /
-					 * (bottomLineArrayDistancesGlobal[i-1] + topLineArrayDistancesGlobal[i-1])); }
-					 * }
-					 */
-					BincountZeroHisto = BincountZeroHisto + 1;
-
-					XSSFRow firstDataRow = sheet.getRow(1);
+			Cell cell;
+			int columnIndex = 0;
+			double epsilon = 1e-10; 
+			   for (double i = 0; i <= 1.0 + epsilon; i += chosenInterval) {
+	                cell = row.createCell(columnIndex++);
+	                cell.setCellValue(i);
+	            }
+			   
+			   double columnIndexRow2 = 0;
+			   epsilon = 1e-10; // Choose an appropriate epsilon value based on the required precision
+			   for (double k = 0; k <= 1.0 + epsilon; k += chosenInterval) {
+				   XSSFRow firstDataRow = sheet.getRow(1);
 					if (firstDataRow == null) {
 						firstDataRow = sheet.createRow(1);
 					}
-					cell = firstDataRow.createCell((short) 0);
-					cell.setCellValue(BincountZeroHisto);
-					System.out.println("BincountZero is " + BincountZeroHisto);
-					System.out.println(
-							"Calculated value for 0.1 is " + BincountZeroPointOneHisto / lineChartIterationCount);
+				   BincountHisto = 0;
+				   cell = firstDataRow.createCell((int) columnIndexRow2++);
+				   for (int i = 1; i < userPickedXCoordsGlobal.length + 1; i++) {
+						
 
-				}
+						if ((bottomLineArrayDistancesGlobal[i - 1]
+								/ (bottomLineArrayDistancesGlobal[i - 1] + topLineArrayDistancesGlobal[i - 1])) < (k+chosenInterval)
+								&& bottomLineArrayDistancesGlobal[i - 1]
+										/ (bottomLineArrayDistancesGlobal[i - 1] + topLineArrayDistancesGlobal[i - 1]) > k ) {
+				
+							globalBinCountArray[(int) columnIndexRow2]++;
+							for (int i1 = 0; i1 < globalBinCountArray.length; i1++) {
+					            System.out.println("Element at index " + i1 + ": " + globalBinCountArray[i1]);
+					        }
+							cell.setCellValue(((double)globalBinCountArray[(int) columnIndexRow2]) / lineChartIterationCount);
+							System.out.println("Value charted: " +  ((double)globalBinCountArray[(int) columnIndexRow2]) / lineChartIterationCount);
+						
+							
+							
+							
+						
+						}
 
-				if ((bottomLineArrayDistancesGlobal[i - 1]
-						/ (bottomLineArrayDistancesGlobal[i - 1] + topLineArrayDistancesGlobal[i - 1])) < 0.2
-						&& bottomLineArrayDistancesGlobal[i - 1]
-								/ (bottomLineArrayDistancesGlobal[i - 1] + topLineArrayDistancesGlobal[i - 1]) > 0.1) {
-					/*
-					 * for(int k = 1; k < 99; k++) { XSSFRow myRow = sheet.getRow(k);
-					 * if(checkIfRowIsEmpty(myRow)) { if(myRow == null) { myRow=sheet.createRow(k);
-					 * } cell = myRow.createCell((short) 1);
-					 * cell.setCellValue(bottomLineArrayDistancesGlobal[i-1] /
-					 * (bottomLineArrayDistancesGlobal[i-1] + topLineArrayDistancesGlobal[i-1])); }
-					 * }
-					 */
-					BincountZeroPointOneHisto = BincountZeroPointOneHisto + 1;
-					XSSFRow firstDataRow = sheet.getRow(1);
-					if (firstDataRow == null) {
-						firstDataRow = sheet.createRow(1);
+						
+
 					}
-					cell = firstDataRow.createCell((short) 1);
-					cell.setCellValue(BincountZeroPointOneHisto / lineChartIterationCount);
-					System.out.println("BincountZeroPointOne is " + BincountZeroPointOneHisto);
-					System.out.println(
-							"Calculated value for 0.1 is " + BincountZeroPointOneHisto / lineChartIterationCount);
-				}
+			   }
+	
 
-				if ((bottomLineArrayDistancesGlobal[i - 1]
-						/ (bottomLineArrayDistancesGlobal[i - 1] + topLineArrayDistancesGlobal[i - 1])) < 0.3
-						&& bottomLineArrayDistancesGlobal[i - 1]
-								/ (bottomLineArrayDistancesGlobal[i - 1] + topLineArrayDistancesGlobal[i - 1]) > 0.2) {
-					/*
-					 * for(int k = 1; k < 99; k++) { XSSFRow myRow = sheet.getRow(k);
-					 * if(checkIfRowIsEmpty(myRow)) { if(myRow == null) { myRow=sheet.createRow(k);
-					 * } cell = myRow.createCell((short) 2);
-					 * cell.setCellValue(bottomLineArrayDistancesGlobal[i-1] /
-					 * (bottomLineArrayDistancesGlobal[i-1] + topLineArrayDistancesGlobal[i-1])); }
-					 * }
-					 */
-					BincountZeroPointTwoHisto = BincountZeroPointTwoHisto + 1;
-					XSSFRow firstDataRow = sheet.getRow(1);
-					if (firstDataRow == null) {
-						firstDataRow = sheet.createRow(1);
-					}
-					cell = firstDataRow.createCell((short) 2);
-					cell.setCellValue(BincountZeroPointTwoHisto / lineChartIterationCount);
-					System.out.println("BincountZeroPointTwo is " + BincountZeroPointTwoHisto);
-					System.out.println(
-							"Calculated value for 0.2 is " + BincountZeroPointTwoHisto / lineChartIterationCount);
-				}
-
-				if ((bottomLineArrayDistancesGlobal[i - 1]
-						/ (bottomLineArrayDistancesGlobal[i - 1] + topLineArrayDistancesGlobal[i - 1])) < 0.4
-						&& bottomLineArrayDistancesGlobal[i - 1]
-								/ (bottomLineArrayDistancesGlobal[i - 1] + topLineArrayDistancesGlobal[i - 1]) > 0.3) {
-					/*
-					 * for(int k = 1; k < 99; k++) { XSSFRow myRow = sheet.getRow(k);
-					 * if(checkIfRowIsEmpty(myRow)) { if(myRow == null) { myRow=sheet.createRow(k);
-					 * } cell = myRow.createCell((short) 3);
-					 * cell.setCellValue(bottomLineArrayDistancesGlobal[i-1] /
-					 * (bottomLineArrayDistancesGlobal[i-1] + topLineArrayDistancesGlobal[i-1])); }
-					 * }
-					 */
-					BincountZeroPointThreeHisto = BincountZeroPointThreeHisto + 1;
-					XSSFRow firstDataRow = sheet.getRow(1);
-					if (firstDataRow == null) {
-						firstDataRow = sheet.createRow(1);
-					}
-					cell = firstDataRow.createCell((short) 3);
-					cell.setCellValue(BincountZeroPointThreeHisto / lineChartIterationCount);
-					System.out.println("BincountZeroPointThree is " + BincountZeroPointThreeHisto);
-					System.out.println(
-							"Calculated value for 0.3 is " + BincountZeroPointThreeHisto / lineChartIterationCount);
-				}
-
-				if ((bottomLineArrayDistancesGlobal[i - 1]
-						/ (bottomLineArrayDistancesGlobal[i - 1] + topLineArrayDistancesGlobal[i - 1])) < 0.5
-						&& bottomLineArrayDistancesGlobal[i - 1]
-								/ (bottomLineArrayDistancesGlobal[i - 1] + topLineArrayDistancesGlobal[i - 1]) > 0.4) {
-					/*
-					 * for(int k = 1; k < 99; k++) { XSSFRow myRow = sheet.getRow(k);
-					 * if(checkIfRowIsEmpty(myRow)) { if(myRow == null) { myRow=sheet.createRow(k);
-					 * } cell = myRow.createCell((short) 4);
-					 * cell.setCellValue(bottomLineArrayDistancesGlobal[i-1] /
-					 * (bottomLineArrayDistancesGlobal[i-1] + topLineArrayDistancesGlobal[i-1])); }
-					 * }
-					 */
-					BincountZeroPointFourHisto = BincountZeroPointFourHisto + 1;
-					System.out.println("BincountZeroHisto is " + BincountZeroPointFourHisto);
-					XSSFRow firstDataRow = sheet.getRow(1);
-					if (firstDataRow == null) {
-						firstDataRow = sheet.createRow(1);
-					}
-					cell = firstDataRow.createCell((short) 4);
-					cell.setCellValue(BincountZeroPointFourHisto / lineChartIterationCount);
-					System.out.println("BincountZeroPointFour is " + BincountZeroPointFourHisto);
-					System.out.println(
-							"Calculated value for 0.4 is " + BincountZeroPointFourHisto / lineChartIterationCount);
-				}
-
-				if ((bottomLineArrayDistancesGlobal[i - 1]
-						/ (bottomLineArrayDistancesGlobal[i - 1] + topLineArrayDistancesGlobal[i - 1])) < 0.6
-						&& bottomLineArrayDistancesGlobal[i - 1]
-								/ (bottomLineArrayDistancesGlobal[i - 1] + topLineArrayDistancesGlobal[i - 1]) > 0.5) {
-					/*
-					 * for(int k = 1; k < 99; k++) { XSSFRow myRow = sheet.getRow(k);
-					 * if(checkIfRowIsEmpty(myRow)) { if(myRow == null) { myRow=sheet.createRow(k);
-					 * } cell = myRow.createCell((short) 5);
-					 * cell.setCellValue(bottomLineArrayDistancesGlobal[i-1] /
-					 * (bottomLineArrayDistancesGlobal[i-1] + topLineArrayDistancesGlobal[i-1])); }
-					 * }
-					 */
-					BincountZeroPointFiveHisto = BincountZeroPointFiveHisto + 1;
-					XSSFRow firstDataRow = sheet.getRow(1);
-					if (firstDataRow == null) {
-						firstDataRow = sheet.createRow(1);
-					}
-					cell = firstDataRow.createCell((short) 5);
-					cell.setCellValue(BincountZeroPointFiveHisto / lineChartIterationCount);
-					System.out.println("BincountZeroPointFive is " + BincountZeroPointFiveHisto);
-					System.out.println(
-							"Calculated value for 0.5 is " + BincountZeroPointFiveHisto / lineChartIterationCount);
-				}
-
-				if ((bottomLineArrayDistancesGlobal[i - 1]
-						/ (bottomLineArrayDistancesGlobal[i - 1] + topLineArrayDistancesGlobal[i - 1])) < 0.7
-						&& bottomLineArrayDistancesGlobal[i - 1]
-								/ (bottomLineArrayDistancesGlobal[i - 1] + topLineArrayDistancesGlobal[i - 1]) > 0.6) {
-					/*
-					 * for(int k = 1; k < 99; k++) { XSSFRow myRow = sheet.getRow(k);
-					 * if(checkIfRowIsEmpty(myRow)) { if(myRow == null) { myRow=sheet.createRow(k);
-					 * } cell = myRow.createCell((short) 6);
-					 * cell.setCellValue(bottomLineArrayDistancesGlobal[i-1] /
-					 * (bottomLineArrayDistancesGlobal[i-1] + topLineArrayDistancesGlobal[i-1])); }
-					 * }
-					 */
-					BincountZeroPointSixHisto = BincountZeroPointSixHisto + 1;
-					XSSFRow firstDataRow = sheet.getRow(1);
-					if (firstDataRow == null) {
-						firstDataRow = sheet.createRow(1);
-					}
-					cell = firstDataRow.createCell((short) 6);
-					cell.setCellValue(BincountZeroPointSixHisto / lineChartIterationCount);
-					System.out.println("BincountZeroPointSix is " + BincountZeroPointSixHisto);
-					System.out.println(
-							"Calculated value for 0.6 is " + BincountZeroPointSixHisto / lineChartIterationCount);
-				}
-
-				if ((bottomLineArrayDistancesGlobal[i - 1]
-						/ (bottomLineArrayDistancesGlobal[i - 1] + topLineArrayDistancesGlobal[i - 1])) < 0.8
-						&& bottomLineArrayDistancesGlobal[i - 1]
-								/ (bottomLineArrayDistancesGlobal[i - 1] + topLineArrayDistancesGlobal[i - 1]) > 0.7) {
-					/*
-					 * for(int k = 1; k < 99; k++) { XSSFRow myRow = sheet.getRow(k);
-					 * if(checkIfRowIsEmpty(myRow)) { if(myRow == null) { myRow=sheet.createRow(k);
-					 * } cell = myRow.createCell((short) 7);
-					 * cell.setCellValue(bottomLineArrayDistancesGlobal[i-1] /
-					 * (bottomLineArrayDistancesGlobal[i-1] + topLineArrayDistancesGlobal[i-1])); }
-					 * }
-					 */
-					BincountZeroPointSevenHisto = BincountZeroPointSevenHisto + 1;
-					XSSFRow firstDataRow = sheet.getRow(1);
-					if (firstDataRow == null) {
-						firstDataRow = sheet.createRow(1);
-					}
-					cell = firstDataRow.createCell((short) 7);
-					cell.setCellValue(BincountZeroPointSevenHisto / lineChartIterationCount);
-					System.out.println("BincountZeroPointSeven is " + BincountZeroPointSevenHisto);
-					System.out.println(
-							"Calculated value for 0.7 is " + BincountZeroPointSevenHisto / lineChartIterationCount);
-				}
-
-				if ((bottomLineArrayDistancesGlobal[i - 1]
-						/ (bottomLineArrayDistancesGlobal[i - 1] + topLineArrayDistancesGlobal[i - 1])) < 0.9
-						&& bottomLineArrayDistancesGlobal[i - 1]
-								/ (bottomLineArrayDistancesGlobal[i - 1] + topLineArrayDistancesGlobal[i - 1]) > 0.8) {
-					/*
-					 * for(int k = 1; k < 99; k++) { XSSFRow myRow = sheet.getRow(k);
-					 * if(checkIfRowIsEmpty(myRow)) { if(myRow == null) { myRow=sheet.createRow(k);
-					 * } cell = myRow.createCell((short) 8);
-					 * cell.setCellValue(bottomLineArrayDistancesGlobal[i-1] /
-					 * (bottomLineArrayDistancesGlobal[i-1] + topLineArrayDistancesGlobal[i-1])); }
-					 * }
-					 */
-					BincountZeroPointEightHisto = BincountZeroPointEightHisto + 1;
-					XSSFRow firstDataRow = sheet.getRow(1);
-					if (firstDataRow == null) {
-						firstDataRow = sheet.createRow(1);
-					}
-					cell = firstDataRow.createCell((short) 8);
-					cell.setCellValue(BincountZeroPointEightHisto / lineChartIterationCount);
-					System.out.println("BincountZeroPointEight is " + BincountZeroPointEightHisto);
-					System.out.println(
-							"Calculated value for 0.8 is " + BincountZeroPointEightHisto / lineChartIterationCount);
-				}
-
-				if ((bottomLineArrayDistancesGlobal[i - 1]
-						/ (bottomLineArrayDistancesGlobal[i - 1] + topLineArrayDistancesGlobal[i - 1])) < 1.0
-						&& bottomLineArrayDistancesGlobal[i - 1]
-								/ (bottomLineArrayDistancesGlobal[i - 1] + topLineArrayDistancesGlobal[i - 1]) > 0.9) {
-					/*
-					 * for(int k = 1; k < 99; k++) { XSSFRow myRow = sheet.getRow(k);
-					 * if(checkIfRowIsEmpty(myRow)) { if(myRow == null) { myRow=sheet.createRow(k);
-					 * } cell = myRow.createCell((short) 9);
-					 * cell.setCellValue(bottomLineArrayDistancesGlobal[i-1] /
-					 * (bottomLineArrayDistancesGlobal[i-1] + topLineArrayDistancesGlobal[i-1])); }
-					 * }
-					 */
-					BincountZeroPointNineHisto = BincountZeroPointNineHisto + 1;
-					XSSFRow firstDataRow = sheet.getRow(1);
-					if (firstDataRow == null) {
-						firstDataRow = sheet.createRow(1);
-					}
-					cell = firstDataRow.createCell((short) 9);
-					cell.setCellValue(BincountZeroPointNineHisto / lineChartIterationCount);
-					System.out.println("BincountZeroPointNine is " + BincountZeroPointNineHisto);
-					System.out.println(
-							"Calculated value for 0.9 is " + BincountZeroPointNineHisto / lineChartIterationCount);
-				}
-
-				if ((bottomLineArrayDistancesGlobal[i - 1]
-						/ (bottomLineArrayDistancesGlobal[i - 1] + topLineArrayDistancesGlobal[i - 1])) < 1.0
-						&& bottomLineArrayDistancesGlobal[i - 1]
-								/ (bottomLineArrayDistancesGlobal[i - 1] + topLineArrayDistancesGlobal[i - 1]) == 1.0) {
-					/*
-					 * for(int k = 1; k < 99; k++) { XSSFRow myRow = sheet.getRow(k);
-					 * if(checkIfRowIsEmpty(myRow)) { if(myRow == null) { myRow=sheet.createRow(k);
-					 * } cell = myRow.createCell((short) 10);
-					 * cell.setCellValue(bottomLineArrayDistancesGlobal[i-1] /
-					 * (bottomLineArrayDistancesGlobal[i-1] + topLineArrayDistancesGlobal[i-1])); }
-					 * }
-					 */
-					BincountOnePointZeroHisto = BincountOnePointZeroHisto + 1;
-					XSSFRow firstDataRow = sheet.getRow(1);
-					if (firstDataRow == null) {
-						firstDataRow = sheet.createRow(1);
-					}
-					cell = firstDataRow.createCell((short) 10);
-					cell.setCellValue(BincountOnePointZeroHisto / lineChartIterationCount);
-					System.out.println("BincountOnePointZero is " + BincountOnePointZeroHisto);
-					System.out.println(
-							"Calculated value for 1.0 is " + BincountOnePointZeroHisto / lineChartIterationCount);
-
-				}
-
-			}
+			
 
 			XSSFDrawing drawing = sheet.createDrawingPatriarch();
 			XSSFClientAnchor anchor = drawing.createAnchor(0, 0, 0, 0, 0, 4, 7, 26);
@@ -1010,10 +786,10 @@ public class SpatialPathologyPlugin_ implements PlugIn, PlugInFilter {
 			leftAxis.setTitle("Cells per Gland");
 
 			XDDFDataSource<String> Position = XDDFDataSourcesFactory.fromStringCellRange(sheet,
-					new CellRangeAddress(0, 0, 0, 11));
+					new CellRangeAddress(0, 0, 0, (int) ((double) 1.0 / chosenInterval )));
 
 			XDDFNumericalDataSource<Double> yPositionsCentroid = XDDFDataSourcesFactory.fromNumericCellRange(sheet,
-					new CellRangeAddress(1, 1, 0, 11));
+					new CellRangeAddress(1, 1, 0, (int) ((double) 1.0 / chosenInterval )));
 
 			XDDFLineChartData data = (XDDFLineChartData) chart.createData(ChartTypes.LINE, bottomAxis, leftAxis);
 
@@ -1052,16 +828,4 @@ public class SpatialPathologyPlugin_ implements PlugIn, PlugInFilter {
 		}
 		return true;
 	}
-
-  @Override
-  public int setup(String arg, ImagePlus imp) {
-    // TODO Auto-generated method stub
-    return 0;
-  }
-
-  @Override
-  public void run(ImageProcessor ip) {
-    // TODO Auto-generated method stub
-    
-  }
 }
