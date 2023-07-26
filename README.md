@@ -1,6 +1,6 @@
 # Spatial Pathology Plugin
 
-A [ImageJ] (https://imagej.net/) plugin to quantify biomarker distribution along the gastrointestinal unit axis.
+A [ImageJ](https://imagej.net/) plugin to quantify biomarker distribution along the gastrointestinal unit axis.
 ImageJ is a Java-based image processing software that serves as a widely used platform for microscopy image analysis in the basic sciences.  
 
 ## Usage
