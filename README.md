@@ -17,9 +17,6 @@ Example (assuming you choose a bin interval of 0.1):
 | 0   | 0.1  | 0.2  | (This will be your interval)
 | 0   | 0.5  | 1.5  | (This will be the cells / gland)
 
-
-Table: This table illustrates what the table you upload must look like. The file also must be saved as a .csv (notably, ImageJ interprets the UTF-8 character marker in plaintext and it will not work, so make sure it is a regular .CSV and not a .csv UTF-8.
-
 ```
  Therefore, if you want the table at the end to count instances  Once you do that, you will then be prompted and asked if you want to draw the line through uploading a .csv file of the line's coordinates. 
 The structure of the csv you could upload must be as follows: 
