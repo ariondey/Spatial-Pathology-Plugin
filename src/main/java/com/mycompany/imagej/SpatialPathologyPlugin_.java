@@ -99,6 +99,8 @@ public class SpatialPathologyIJMJava_ implements PlugIn {
 	public String outputFileNameTS;
 	public double chosenInterval = 0;
 	public double[] globalBinCountArray;
+	public double lengthLine1;
+	public double lengthLine2;
 	////////////////////////////////////////////////////////////////////////////////
 
 	@Override
@@ -235,7 +237,7 @@ public class SpatialPathologyIJMJava_ implements PlugIn {
 			} else {
 				// LINE 1 CODE
 				// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-				double lengthLine1 = 0;
+				lengthLine1 = 0;
 				int lining1Success = 0;
 				while (lining1Success == 0) {
 					IJ.setTool("polyline");
@@ -342,7 +344,7 @@ public class SpatialPathologyIJMJava_ implements PlugIn {
 			} else {
 				// LINE 2 CODE
 				// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-				double lengthLine2 = 0;
+				lengthLine2 = 0;
 				int lining2Success = 0;
 				while (lining2Success == 0) {
 					IJ.setTool("polyline");
@@ -424,6 +426,7 @@ public class SpatialPathologyIJMJava_ implements PlugIn {
 			case 2:
 			case -1:
 				System.out.println("Do you want to add points through a CSV file? : User cancelled");
+				
 				return;
 			}
 			System.out.println("Do you want to add points through a CSV file? : " + pointInputIsCSV);
@@ -614,6 +617,8 @@ public class SpatialPathologyIJMJava_ implements PlugIn {
 				rowhead.createCell(2).setCellValue("Distance from the base to each point in order");
 				rowhead.createCell(3).setCellValue("Distance from the top to each point in order");
 				rowhead.createCell(4).setCellValue("Normalized Distance");
+				rowhead.createCell(5).setCellValue("Length of Line 1");
+				rowhead.createCell(6).setCellValue("Length of Line 2");
 				HSSFRow[] rowArray = new HSSFRow[999];
 				// All of the plus ones are to make space for the title row created above
 				for (int i = 1; i < userPickedXCoordsGlobal.length + 1; i++) {
@@ -624,8 +629,11 @@ public class SpatialPathologyIJMJava_ implements PlugIn {
 					rowArray[i].createCell(3).setCellValue(topLineArrayDistancesGlobal[i - 1]);
 					rowArray[i].createCell(4).setCellValue(bottomLineArrayDistancesGlobal[i - 1]
 							/ (bottomLineArrayDistancesGlobal[i - 1] + topLineArrayDistancesGlobal[i - 1]));
+					
 
 				}
+				rowArray[1].createCell(5).setCellValue(lengthLine1);
+				rowArray[1].createCell(6).setCellValue(lengthLine2);
 				FileOutputStream fileOut = new FileOutputStream(filename);
 				workbook.write(fileOut);
 				// closing the Stream
