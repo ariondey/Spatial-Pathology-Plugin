@@ -135,7 +135,8 @@ public class SpatialPathologyIJMJava_ implements PlugIn {
 	        System.out.println("Chosen interval: " + chosenInterval);
 	      
 	        System.out.println("array global size" + ((double) 1.0 / chosenInterval ));
-	        globalBinCountArray = new double[(int) ((double) 1.0 / chosenInterval )];
+	        double epsilon = 1e-10;
+	        globalBinCountArray = new double[(int) Math.ceil((1.0 + epsilon) / chosenInterval) + 1];
 		outputFileNameTS = makeOutputFileNameTS();
 
 		// Control Variable for the repeat of the macro
@@ -281,7 +282,7 @@ public class SpatialPathologyIJMJava_ implements PlugIn {
 							}
 							PolygonRoi line1Roi = new PolygonRoi(linePolygon, Roi.POLYLINE);
 							line1Roi.setName("Line 1");
-							PolygonRoi.setColor(Color.RED);
+							PolygonRoi.setColor(Color.YELLOW);
 							int imageID = WindowManager.getCurrentImage().getID();
 
 							RoiManager roiManager = new RoiManager();
@@ -385,7 +386,7 @@ public class SpatialPathologyIJMJava_ implements PlugIn {
 							}
 							PolygonRoi line2Roi = new PolygonRoi(linePolygon2, Roi.POLYLINE);
 							line2Roi.setName("Line 2");
-							PolygonRoi.setColor(Color.ORANGE);
+							PolygonRoi.setColor(Color.YELLOW);
 							int imageID = WindowManager.getCurrentImage().getID();
 							roiManager.add(imp0, line2Roi, -1);
 
@@ -463,7 +464,11 @@ public class SpatialPathologyIJMJava_ implements PlugIn {
 					PointRoi pointRoi = new PointRoi(xCsvValue, yCsvValue);
 					overlay.add(pointRoi);
 				}
+				
 				WindowManager.getCurrentImage().setOverlay(overlay);
+				new WaitForUserDialog(
+						"Please click OK to confirm your points")
+						.show();
 
 			} else {
 				// Code for manual point input
@@ -617,8 +622,9 @@ public class SpatialPathologyIJMJava_ implements PlugIn {
 				rowhead.createCell(2).setCellValue("Distance from the base to each point in order");
 				rowhead.createCell(3).setCellValue("Distance from the top to each point in order");
 				rowhead.createCell(4).setCellValue("Normalized Distance");
-				rowhead.createCell(5).setCellValue("Length of Line 1");
-				rowhead.createCell(6).setCellValue("Length of Line 2");
+				rowhead.createCell(5).setCellValue("Length of Base");
+				rowhead.createCell(6).setCellValue("Length of Top");
+				rowhead.createCell(7).setCellValue("Chosen Bin Interval");
 				HSSFRow[] rowArray = new HSSFRow[999];
 				// All of the plus ones are to make space for the title row created above
 				for (int i = 1; i < userPickedXCoordsGlobal.length + 1; i++) {
@@ -634,6 +640,7 @@ public class SpatialPathologyIJMJava_ implements PlugIn {
 				}
 				rowArray[1].createCell(5).setCellValue(lengthLine1);
 				rowArray[1].createCell(6).setCellValue(lengthLine2);
+				rowArray[1].createCell(7).setCellValue(chosenInterval);
 				FileOutputStream fileOut = new FileOutputStream(filename);
 				workbook.write(fileOut);
 				// closing the Stream
@@ -754,13 +761,14 @@ public class SpatialPathologyIJMJava_ implements PlugIn {
 				   cell = firstDataRow.createCell((int) columnIndexRow2++);
 				   for (int i = 1; i < userPickedXCoordsGlobal.length + 1; i++) {
 						
-
+					  
 						if ((bottomLineArrayDistancesGlobal[i - 1]
 								/ (bottomLineArrayDistancesGlobal[i - 1] + topLineArrayDistancesGlobal[i - 1])) < (k+chosenInterval)
 								&& bottomLineArrayDistancesGlobal[i - 1]
 										/ (bottomLineArrayDistancesGlobal[i - 1] + topLineArrayDistancesGlobal[i - 1]) > k ) {
 				
 							globalBinCountArray[(int) columnIndexRow2]++;
+							
 							for (int i1 = 0; i1 < globalBinCountArray.length; i1++) {
 					            System.out.println("Element at index " + i1 + ": " + globalBinCountArray[i1]);
 					        }
