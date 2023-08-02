@@ -39,6 +39,9 @@ You will be prompted if you want to repeat with another image. Every image will 
 ### Data Output
 For saving images you will be prompted to select a folder, I would highly reccomend that you save everything in the same folder as the image, as all outputs are coded to start with the same information as the image. In my practice this has been the most sensible way to format everything. The image saving format is as a .tiff, but all inputs accepted by ImageJ are accepted in this plugin. There will also be two excel sheets as the output. One of them is all the information in the image (centroid coordinates, distances from the base to the centroid, distances from the top to the centroid and then the normalized distance). The other one the averaged out one that uses the normalized distances and the bin intervals that the user specified earlier.
 
+### Common Useful Commands:
+ctrl + a: Undoes your current selection, excellent way to let you redo anything that pops up
+
 ![nonHistogramExcel](../assets/nonHistogramExcel.png?raw=true)
 ![HistogramExcel](../assets/histogramExcel.png?raw=true)
 ### Questions(?)
