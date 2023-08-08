@@ -50,6 +50,8 @@ import javax.swing.JOptionPane;
 
 import ij.io.DirectoryChooser;
 import ij.io.FileSaver;
+import ij.plugin.tool.PlugInTool;
+
 
 public class SpatialPathologyIJMJava_ implements PlugIn {
 
@@ -101,10 +103,16 @@ public class SpatialPathologyIJMJava_ implements PlugIn {
 	public double[] globalBinCountArray;
 	public double lengthLine1;
 	public double lengthLine2;
+	public double distanceToDivide;
+	public ImagePlus imp0;
+	public float[] distanceToDivideArray;
 	////////////////////////////////////////////////////////////////////////////////
+
+
 
 	@Override
 	public void run(String arg) {
+		
 		double start = 0;
 		double end = 1.0;
 		boolean isValidInput = false;
@@ -144,7 +152,7 @@ public class SpatialPathologyIJMJava_ implements PlugIn {
 		while (repeatFlag == 1) {
 			String outputFileName = "";
 			// Prompt User to select image for measurement
-			ImagePlus imp0 = null;
+			 imp0 = null;
 			boolean canOpen;
 			// Create an OpenDialog to prompt the user for an image file
 			do {
@@ -283,12 +291,14 @@ public class SpatialPathologyIJMJava_ implements PlugIn {
 							PolygonRoi line1Roi = new PolygonRoi(linePolygon, Roi.POLYLINE);
 							line1Roi.setName("Line 1");
 							PolygonRoi.setColor(Color.YELLOW);
+							PolygonRoi.setDefaultFillColor(Color.yellow);
 							int imageID = WindowManager.getCurrentImage().getID();
 
 							RoiManager roiManager = new RoiManager();
 							roiManager.add(imp0, line1Roi, -1);
 							roiManager.select(roiManager.getSelectedIndex());
 							roiManager.runCommand("draw");
+							roiManager.runCommand("Show All");
 							int[] imageIDs = WindowManager.getIDList();
 							if (imageIDs != null && imageIDs.length > 0) {
 								for (int id : imageIDs) {
@@ -327,10 +337,12 @@ public class SpatialPathologyIJMJava_ implements PlugIn {
 					yPoints2Global[i] = yCsvValueLine;
 				}
 				PolygonRoi Line2roi = new PolygonRoi(xPoints2Global, yPoints2Global, Roi.FREELINE);
+				Line2roi.setStrokeColor(Color.yellow);
 				RoiManager roiManager = RoiManager.getInstance2();
 				roiManager.add(imp0, Line2roi, -1);
 				roiManager.select(roiManager.getSelectedIndex());
 				roiManager.runCommand("draw");
+				
 				int imageID = WindowManager.getCurrentImage().getID();
 				int[] imageIDs = WindowManager.getIDList();
 				if (imageIDs != null && imageIDs.length > 0) {
@@ -387,11 +399,13 @@ public class SpatialPathologyIJMJava_ implements PlugIn {
 							PolygonRoi line2Roi = new PolygonRoi(linePolygon2, Roi.POLYLINE);
 							line2Roi.setName("Line 2");
 							PolygonRoi.setColor(Color.YELLOW);
+							PolygonRoi.setDefaultFillColor(Color.yellow);
 							int imageID = WindowManager.getCurrentImage().getID();
 							roiManager.add(imp0, line2Roi, -1);
 
 							roiManager.select(roiManager.getSelectedIndex());
 							roiManager.runCommand("draw");
+							roiManager.runCommand("Show All");
 							int[] imageIDs = WindowManager.getIDList();
 							if (imageIDs != null && imageIDs.length > 0) {
 								for (int id : imageIDs) {
@@ -586,7 +600,36 @@ public class SpatialPathologyIJMJava_ implements PlugIn {
 					}
 				}
 			}
+			//Average Length Distance Calc
+			distanceToDivide = 0;
+			distanceToDivideArray = new float[xPoints2Global.length + 1];
+			for (int i = 0; i < xPoints2Global.length; i++) {
+			    // This first point is for the edge case where the closest point is the first one chosen
+			    distanceToDivideArray[i] = (float) Math.sqrt((xPointsGlobal[0] - xPoints2Global[i])
+			            * (xPointsGlobal[0] - xPoints2Global[i])
+			            + (yPointsGlobal[0] - yPoints2Global[i])
+			            * (yPointsGlobal[0] - yPoints2Global[i]));
+			    for (int k = 1; k < xPointsGlobal.length - 1; k++) { // Use xPointsGlobal.length for the outer loop
+			        float firstCompVal = (float) Math.sqrt((xPointsGlobal[k - 1] - xPoints2Global[i])
+			                * (xPointsGlobal[k - 1] - xPoints2Global[i])
+			                + (yPointsGlobal[k - 1] - yPoints2Global[i])
+			                * (yPointsGlobal[k - 1] - yPoints2Global[i]));
+			        float secondCompVal = (float) Math.sqrt((xPointsGlobal[k] - xPoints2Global[i])
+			                * (xPointsGlobal[k] - xPoints2Global[i])
+			                + (yPointsGlobal[k] - yPoints2Global[i])
+			                * (yPointsGlobal[k] - yPoints2Global[i]));
+			        if (firstCompVal > secondCompVal) {
+			            distanceToDivideArray[i] = secondCompVal;
+			        }
+			    }
+			}
 
+
+			
+
+for (int i = 0; i < distanceToDivideArray.length; i++) {
+    distanceToDivide += distanceToDivideArray[i];
+}
 			/*
 			 * Implementation of a .csv output that I am looking to depreciate try {
 			 * FileWriter f = new FileWriter(outputFileName);
@@ -625,6 +668,7 @@ public class SpatialPathologyIJMJava_ implements PlugIn {
 				rowhead.createCell(5).setCellValue("Length of Base");
 				rowhead.createCell(6).setCellValue("Length of Top");
 				rowhead.createCell(7).setCellValue("Chosen Bin Interval");
+				rowhead.createCell(8).setCellValue("Average Distance between Lines");
 				HSSFRow[] rowArray = new HSSFRow[999];
 				// All of the plus ones are to make space for the title row created above
 				for (int i = 1; i < userPickedXCoordsGlobal.length + 1; i++) {
@@ -641,6 +685,7 @@ public class SpatialPathologyIJMJava_ implements PlugIn {
 				rowArray[1].createCell(5).setCellValue(lengthLine1);
 				rowArray[1].createCell(6).setCellValue(lengthLine2);
 				rowArray[1].createCell(7).setCellValue(chosenInterval);
+				rowArray[1].createCell(8).setCellValue(distanceToDivide / (distanceToDivideArray.length));
 				FileOutputStream fileOut = new FileOutputStream(filename);
 				workbook.write(fileOut);
 				// closing the Stream
@@ -736,10 +781,11 @@ public class SpatialPathologyIJMJava_ implements PlugIn {
 		String dateTime = dateFormat.format(calendar.getTime());
 		String sheetName = "HistogramForMacroSession" + dateTime;
 		XSSFSheet sheet = wb.createSheet(sheetName);
+	
 
 		try {
 			lineChartIterationCount = lineChartIterationCount + 1;
-			System.out.println("LineChartIterationCount is" + lineChartIterationCount);
+			
 			// Bin Ranges (x axis)
 			Row row = sheet.createRow((short) 0);
 			Cell cell;
@@ -785,13 +831,15 @@ public class SpatialPathologyIJMJava_ implements PlugIn {
 
 					}
 			   }
+			   
+			   
+			   
 	
 
 			
 
 			XSSFDrawing drawing = sheet.createDrawingPatriarch();
 			XSSFClientAnchor anchor = drawing.createAnchor(0, 0, 0, 0, 0, 4, 7, 26);
-
 			XSSFChart chart = drawing.createChart(anchor);
 			chart.setTitleText("Test");
 			chart.setTitleOverlay(false);
@@ -815,6 +863,9 @@ public class SpatialPathologyIJMJava_ implements PlugIn {
 			series1.setMarkerStyle(MarkerStyle.SQUARE);
 
 			chart.plot(data);
+			
+			//Image Specific Histogram
+			
 
 			// Write output to an excel file
 			String filename = imgFilePath + "_" + outputFileNameTS + "_SessionHistogram.xlsx";
@@ -827,6 +878,9 @@ public class SpatialPathologyIJMJava_ implements PlugIn {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
+		//Code for image specific histogram
+		
 	}
 
 	private boolean checkIfRowIsEmpty(Row row) {
