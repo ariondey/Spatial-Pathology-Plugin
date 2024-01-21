@@ -493,9 +493,11 @@ public class SpatialPathologyIJMJava_ implements PlugIn {
                 }
                 
                 WindowManager.getCurrentImage().setOverlay(overlay);
-                new WaitForUserDialog(
-                        "Please click OK to confirm your points")
-                        .show();
+                new WaitForUserDialog("Please click OK to confirm your points").show();
+                RoiManager roiManager = RoiManager.getInstance();
+                roiManager.setVisible(true);
+                roiManager.close();
+
 
             } else {
                 // Code for manual point input
