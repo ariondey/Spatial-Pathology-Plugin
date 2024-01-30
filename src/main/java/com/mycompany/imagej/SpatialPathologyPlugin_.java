@@ -47,7 +47,7 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
-
+import java.util.Random;
 import ij.io.DirectoryChooser;
 import ij.io.FileSaver;
 import ij.plugin.tool.PlugInTool;
@@ -106,6 +106,7 @@ public class SpatialPathologyIJMJava_ implements PlugIn {
     public double distanceToDivide;
     public ImagePlus imp0;
     public float[] distanceToDivideArray;
+
     ////////////////////////////////////////////////////////////////////////////////
 
 
@@ -122,7 +123,7 @@ public class SpatialPathologyIJMJava_ implements PlugIn {
                     String intervalInput = JOptionPane.showInputDialog(null, "Enter the chosen interval between " + start + " and " + end + ":");
                     if (intervalInput == null) {
                         // User clicked cancel or closed the dialog
-                        System.exit(0);
+                        IJ.exit();
                     }
 
                     chosenInterval = Double.parseDouble(intervalInput);
@@ -140,9 +141,9 @@ public class SpatialPathologyIJMJava_ implements PlugIn {
             }
 
             // At this point, chosenInterval is valid, and you can use it as needed.
-            System.out.println("Chosen interval: " + chosenInterval);
+            //System.out.println("Chosen interval: " + chosenInterval);
           
-            System.out.println("array global size" + ((double) 1.0 / chosenInterval ));
+           // System.out.println("array global size" + ((double) 1.0 / chosenInterval ));
             double epsilon = 1e-10;
             globalBinCountArray = new double[(int) Math.ceil((1.0 + epsilon) / chosenInterval) + 1];
         outputFileNameTS = makeOutputFileNameTS();
@@ -178,7 +179,9 @@ public class SpatialPathologyIJMJava_ implements PlugIn {
                 outputFileName = manualCSVgd.getPath();
 
             } else if (outputFileName == "") {
-                outputFileName = imgFilePath + "_" + outputFileNameTS + "_output.xls";
+              Random random = new Random();
+              int rand_int2 = random.nextInt(1000);
+                outputFileName = imgFilePath + "_" + outputFileNameTS + rand_int2 + "_output.xls";
             }
             System.out.println("Output file: " + outputFileName);
 
@@ -231,9 +234,10 @@ public class SpatialPathologyIJMJava_ implements PlugIn {
                   float dx = (xPointsGlobal[i] - xPointsGlobal[i - 1]);
                   float dy = (yPointsGlobal[i] - yPointsGlobal[i - 1]);
                   lengthLine1 = lengthLine1 + Math.sqrt(dx * dx + dy * dy);
-                  System.out.println(lengthLine1 + Math.sqrt(dx * dx + dy * dy));
+                 // System.out.println(lengthLine1 + Math.sqrt(dx * dx + dy * dy));
               }
                PolygonRoi Line1roi = new PolygonRoi(xPointsGlobal, yPointsGlobal, Roi.FREELINE);
+               
                 RoiManager roiManager = new RoiManager();
                 roiManager.add(imp0, Line1roi, -1);
  
@@ -281,7 +285,7 @@ public class SpatialPathologyIJMJava_ implements PlugIn {
                             float dx = (xPoints[i] - xPoints[i - 1]);
                             float dy = (yPoints[i] - yPoints[i - 1]);
                             lengthLine1 = lengthLine1 + Math.sqrt(dx * dx + dy * dy);
-                            System.out.println(lengthLine1 + Math.sqrt(dx * dx + dy * dy));
+                            //System.out.println(lengthLine1 + Math.sqrt(dx * dx + dy * dy));
                         }
 
                         if (lengthLine1 > 0) {
@@ -498,7 +502,6 @@ public class SpatialPathologyIJMJava_ implements PlugIn {
                 roiManager.setVisible(true);
                 roiManager.close();
 
-
             } else {
                 // Code for manual point input
                 boolean pointsGood = false;
@@ -669,7 +672,7 @@ for (int i = 0; i < distanceToDivideArray.length; i++) {
              * (IOException e) { e.printStackTrace(); }
              */
             try {
-
+                
                 String filename = outputFileName;
                 HSSFWorkbook workbook = new HSSFWorkbook();
                 HSSFSheet sheet = workbook.createSheet(imageFileName);
@@ -685,6 +688,7 @@ for (int i = 0; i < distanceToDivideArray.length; i++) {
                 rowhead.createCell(6).setCellValue("Length of Top");
                 rowhead.createCell(7).setCellValue("Chosen Bin Interval");
                 rowhead.createCell(8).setCellValue("Average Distance between Lines");
+                System.out.println("Does this run?");
                 HSSFRow[] rowArray = new HSSFRow[999];
                 // All of the plus ones are to make space for the title row created above
                 for (int i = 1; i < userPickedXCoordsGlobal.length + 1; i++) {
@@ -795,6 +799,7 @@ for (int i = 0; i < distanceToDivideArray.length; i++) {
         Calendar calendar = Calendar.getInstance();
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy_MMdd_HHmmss");
         String dateTime = dateFormat.format(calendar.getTime());
+        
         String sheetName = "HistogramForMacroSession" + dateTime;
         XSSFSheet sheet = wb.createSheet(sheetName);
     
@@ -884,7 +889,9 @@ for (int i = 0; i < distanceToDivideArray.length; i++) {
             
 
             // Write output to an excel file
-            String filename = imgFilePath + "_" + outputFileNameTS + "_SessionHistogram.xlsx";
+            Random random = new Random();
+            int rand_int1 = random.nextInt(1000);
+            String filename = imgFilePath + "_" + outputFileNameTS + + rand_int1 + "_SessionHistogram.xlsx";
             try (FileOutputStream fileOut = new FileOutputStream(filename)) {
                 wb.write(fileOut);
                 wb.close();
