@@ -858,32 +858,36 @@ for (int i = 0; i < distanceToDivideArray.length; i++) {
     
 
             
-
-            XSSFDrawing drawing = sheet.createDrawingPatriarch();
-            XSSFClientAnchor anchor = drawing.createAnchor(0, 0, 0, 0, 0, 4, 7, 26);
-            XSSFChart chart = drawing.createChart(anchor);
-            chart.setTitleText("Test");
-            chart.setTitleOverlay(false);
-
-            XDDFCategoryAxis bottomAxis = chart.createCategoryAxis(AxisPosition.BOTTOM);
-            bottomAxis.setTitle("Position");
-            XDDFValueAxis leftAxis = chart.createValueAxis(AxisPosition.LEFT);
-            leftAxis.setTitle("Cells per Gland");
-
-            XDDFDataSource<String> Position = XDDFDataSourcesFactory.fromStringCellRange(sheet,
-                    new CellRangeAddress(0, 0, 0, (int) ((double) 1.0 / chosenInterval )));
-
-            XDDFNumericalDataSource<Double> yPositionsCentroid = XDDFDataSourcesFactory.fromNumericCellRange(sheet,
-                    new CellRangeAddress(1, 1, 0, (int) ((double) 1.0 / chosenInterval )));
-
-            XDDFLineChartData data = (XDDFLineChartData) chart.createData(ChartTypes.LINE, bottomAxis, leftAxis);
-
-            XDDFLineChartData.Series series1 = (XDDFLineChartData.Series) data.addSeries(Position, yPositionsCentroid);
-            series1.setTitle("Area", null);
-            series1.setSmooth(false);
-            series1.setMarkerStyle(MarkerStyle.SQUARE);
-
-            chart.plot(data);
+//Removed depreciated histogram from session summary spreadsheet (Depreciated from MS Excel, inclusion is fully broken/corrupted)
+			/*
+				 * XSSFDrawing drawing = sheet.createDrawingPatriarch(); XSSFClientAnchor anchor
+				 * = drawing.createAnchor(0, 0, 0, 0, 0, 4, 7, 26); XSSFChart chart =
+				 * drawing.createChart(anchor); chart.setTitleText("Test");
+				 * chart.setTitleOverlay(false);
+				 * 
+				 * XDDFCategoryAxis bottomAxis = chart.createCategoryAxis(AxisPosition.BOTTOM);
+				 * bottomAxis.setTitle("Position"); XDDFValueAxis leftAxis =
+				 * chart.createValueAxis(AxisPosition.LEFT);
+				 * leftAxis.setTitle("Cells per Gland");
+				 * 
+				 * XDDFDataSource<String> Position =
+				 * XDDFDataSourcesFactory.fromStringCellRange(sheet, new CellRangeAddress(0, 0,
+				 * 0, (int) ((double) 1.0 / chosenInterval )));
+				 * 
+				 * XDDFNumericalDataSource<Double> yPositionsCentroid =
+				 * XDDFDataSourcesFactory.fromNumericCellRange(sheet, new CellRangeAddress(1, 1,
+				 * 0, (int) ((double) 1.0 / chosenInterval )));
+				 * 
+				 * XDDFLineChartData data = (XDDFLineChartData)
+				 * chart.createData(ChartTypes.LINE, bottomAxis, leftAxis);
+				 * 
+				 * XDDFLineChartData.Series series1 = (XDDFLineChartData.Series)
+				 * data.addSeries(Position, yPositionsCentroid); series1.setTitle("Area", null);
+				 * series1.setSmooth(false); series1.setMarkerStyle(MarkerStyle.SQUARE);
+				 * 
+				 * chart.plot(data);
+				 */
+            
             
             //Image Specific Histogram
             
