@@ -49,12 +49,12 @@ ezrin_bin_std_devs = [0.008628145, 0.028418914, 0.028721503, 0.028611132, 0.0282
                       0.029179678, 0.029510586, 0.027960446, 0.028752226, 0.019878786]
 
 # Provided standard deviation values for each bin for Ki67Cy5 data
-ki67_bin_std_devs = [0.019413, 0.020298, 0.024766]
+ki67_bin_std_devs = [0.019413, 0.020298, 0.024766, 0, 0, 0, 0, 0, 0, 0]
 
 # Standard deviation values for each bin for OLFM4488 data
-olfm_bin_std_devs = [0.017273541, 0.031571691]
+olfm_bin_std_devs = [0.017273541, 0.031571691, 0, 0, 0, 0, 0, 0, 0, 0]
 
-def plot_combined_histogram_with_bell_curve(data, normalization_factor, ezrin_bin_std_devs, olfm_bin_std_devs):
+def plot_combined_histogram_with_bell_curve(data, normalization_factor, ezrin_bin_std_devs, ki67_bin_std_devs, olfm_bin_std_devs):
     fluorophores = data['Fluorophore'].unique()
     
     plt.figure(figsize=(10, 8))
@@ -70,39 +70,36 @@ def plot_combined_histogram_with_bell_curve(data, normalization_factor, ezrin_bi
         
         # Apply shading for EzrinCy3 data
         if fluorophore == 'EzrinCy3':
-            bin_edges = np.linspace(0, 1, 11)
+            bin_edges = np.linspace(0, 1, len(ezrin_bin_std_devs) + 1)
             bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
             std_devs_interp = interp1d(bin_centers, ezrin_bin_std_devs, kind='linear', fill_value="extrapolate")
             std_devs_smooth = std_devs_interp(xs)
-            damping_factor = np.exp(-5 * (xs - 0.5))  # Apply damping factor to temper upper bounds
-            std_devs_smooth = std_devs_smooth * damping_factor.clip(0, 1)
             plt.fill_betweenx(xs, np.maximum(0, ys - std_devs_smooth), ys + std_devs_smooth, color='orange', alpha=0.3)
         
         # Apply shading for OLFM4488 data
         if fluorophore == 'OLFM4488':
-            bin_edges = np.linspace(0, 0.2, 3)
+            bin_edges = np.linspace(0, 1, len(olfm_bin_std_devs) + 1)
             bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
             std_devs_interp = interp1d(bin_centers, olfm_bin_std_devs, kind='linear', fill_value="extrapolate")
             std_devs_smooth = std_devs_interp(xs)
-            damping_factor = np.exp(-5 * (xs - 0.5))  # Apply damping factor to temper upper bounds
-            std_devs_smooth = std_devs_smooth * damping_factor.clip(0, 1)
             plt.fill_betweenx(xs, np.maximum(0, ys - std_devs_smooth), ys + std_devs_smooth, color='blue', alpha=0.3)
+        
         # Apply Shading for Ki67Cy5 Data 
         if fluorophore == 'Ki67Cy5':
-            bin_edges = np.linspace(0, 0.3, 4)
+            bin_edges = np.linspace(0, 1, len(ki67_bin_std_devs) + 1)
             bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
             std_devs_interp = interp1d(bin_centers, ki67_bin_std_devs, kind='linear', fill_value="extrapolate")
             std_devs_smooth = std_devs_interp(xs)
-            damping_factor = np.exp(-5 * (xs - 0.9))  # Apply damping factor to temper upper bounds
-            std_devs_smooth = std_devs_smooth * damping_factor.clip(0, 1)
             plt.fill_betweenx(xs, np.maximum(0, ys - std_devs_smooth), ys + std_devs_smooth, color='lightgreen', alpha=0.3)
+            
     plt.title('Normalized Distance Distribution by Fluorophore')
     plt.ylabel('Normalized Distance')
     plt.xlabel('Density (Normalized)')
-    plt.ylim(0, 1)
+    plt.xlim(0, 1)  # Restrict x-axis to 0-1
+    plt.ylim(0, 1)  # Restrict y-axis to 0-1
     plt.legend(title='Fluorophore')
     plt.grid(True)
     plt.show()
 
 # Plot the combined histogram with bell curve
-plot_combined_histogram_with_bell_curve(combined_data, normalization_factor, ezrin_bin_std_devs, olfm_bin_std_devs)
+plot_combined_histogram_with_bell_curve(combined_data, normalization_factor, ezrin_bin_std_devs, ki67_bin_std_devs, olfm_bin_std_devs)
