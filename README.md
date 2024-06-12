@@ -37,9 +37,10 @@ You will be prompted if you want to repeat with another image. Every image will 
 
 ![BatchProcessing](../assets/batchProcessing.png?raw=true)
 ### Data Output
-For saving images you will be prompted to select a folder, I would highly reccomend that you save everything in the same folder as the image, as all outputs are coded to start with the same information as the image. In my practice this has been the most sensible way to format everything. The image saving format is as a .tiff, but all inputs accepted by ImageJ are accepted in this plugin. There will also be two excel sheets as the output. One of them is all the information in the image (centroid coordinates, distances from the base to the centroid, distances from the top to the centroid and then the normalized distance). The other one the averaged out one that uses the normalized distances and the bin intervals that the user specified earlier.
+For saving images you will be prompted to select a folder, I would highly reccomend that you save everything in the same folder as the image, as all outputs are coded to start with the same information as the image. In my practice this has been the most sensible way to format everything. The image saving format is as a .tiff, but all inputs accepted by ImageJ are accepted in this plugin. There will also be two excel sheets as the output. One of them is all the information in the image (centroid coordinates, distances from the base to the centroid, distances from the top to the centroid and then the normalized distance). The other one the averaged out one that uses the normalized distances and the bin intervals that the user specified earlier. 
+
 ![nonHistogramExcel](../assets/nonHistogramExcel.png?raw=true)
-![HistogramExcel](../assets/histogramExcel.png?raw=true)
+
 
 
 
@@ -47,4 +48,4 @@ For saving images you will be prompted to select a folder, I would highly reccom
 ctrl + a: Undoes your current selection, excellent way to let you redo anything that pops up
 
 ### Questions(?)
-If you have any questions or issues, please contact me with concerns or create an issue within github itself. Although this is a plugin affiliated with the Weis Lab at Wake Forest University I am the sole developer so bothering them with any issues you have with this will be fruitless but I would be happy to help with anything.
+If you have any questions or issues, please contact me with concerns or create an issue within github itself. Although this is a plugin affiliated with the Weis Lab at Wake Forest University I am the sole developer so bothering them with any issues you have with this will be fruitless but I would be happy to help with anything. Best way would be to create an issue within github. 
