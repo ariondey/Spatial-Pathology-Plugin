@@ -53,7 +53,7 @@ import ij.io.FileSaver;
 import ij.plugin.tool.PlugInTool;
 
 
-public class SpatialPathologyIJMJava_ implements PlugIn {
+public class SpatialPathologyPlugin_ implements PlugIn {
 
     // Settings. Edit to change from default values. ///////////////////////////////
     // These are safely editable by the user
@@ -748,7 +748,7 @@ for (int i = 0; i < distanceToDivideArray.length; i++) {
             if (repeatInput) {
                 // Yes Repeat
                 ApachePoiLineChart(chosenInterval);
-                
+                IJ.getImage().close();
                 repeatFlag = 1;
             } else {
                 // No repeat
@@ -858,8 +858,7 @@ for (int i = 0; i < distanceToDivideArray.length; i++) {
     
 
             
-//Removed depreciated histogram from session summary spreadsheet (Depreciated from MS Excel, inclusion is fully broken/corrupted)
-			/*
+				/*
 				 * XSSFDrawing drawing = sheet.createDrawingPatriarch(); XSSFClientAnchor anchor
 				 * = drawing.createAnchor(0, 0, 0, 0, 0, 4, 7, 26); XSSFChart chart =
 				 * drawing.createChart(anchor); chart.setTitleText("Test");
@@ -887,7 +886,6 @@ for (int i = 0; i < distanceToDivideArray.length; i++) {
 				 * 
 				 * chart.plot(data);
 				 */
-            
             
             //Image Specific Histogram
             
