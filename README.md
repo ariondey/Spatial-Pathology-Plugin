@@ -7,8 +7,8 @@ ImageJ is a Java-based image processing software that serves as a widely used pl
 This is a gastrointestinal-focused spatial pathology plugin to advance research in spatial analysis of GI epithelial tissues to quantify immunostaining markers in a tissue landscape through a spatial lens.
 
 ### Installing
-In order to use this plugin, you need Fiji which is the latest version of ImageJ, you must use this version in order to get the remote update. This plugin is hosted on a remote webserver so you can download it using this tutorial: https://imagej.net/update-sites/following and by using the URL http://sites.imagej.net/SpatialPathology/
-You only need to do this on the first install, if it was installed correctly you will see "SpatialpathologyIJMJava" in your plugins folder and if any changes are made to the plugin, all you will need to do is update your imagej. 
+In order to use this plugin, you need Fiji which is the latest version of ImageJ, you must use this version in order to get the remote update. This plugin is hosted on a remote webserver so you can download it using this tutorial: https://imagej.net/update-sites/following and by using the URL https://sites.imagej.net/SpatialPathology/
+You only need to do this on the first install, if it was installed correctly you will see "SpatialPathologyPlugin" in your plugins folder and if any changes are made to the plugin, all you will need to do is update your imagej. 
 ![UpdaterScreenshot](../assets/updaterScreenShot.png?raw=true)
 ### Workflow 
 When you launch the plugin you will be immediately asked what you want the bin interval to be. Once an image is run, the normalized distances to user selected points will range from 0 (directly on the base line) or 1.0 (directly on the top line). 
