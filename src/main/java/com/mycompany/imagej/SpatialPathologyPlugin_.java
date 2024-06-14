@@ -157,6 +157,8 @@ public class SpatialPathologyPlugin_ implements PlugIn {
             boolean canOpen;
             // Create an OpenDialog to prompt the user for an image file
             do {
+            	lengthLine1 = 0;
+            	lengthLine2 = 0;
                 OpenDialog openDialog = new OpenDialog("Select Image");
                 imageFileName = openDialog.getFileName();
                 imgFilePath = openDialog.getPath();
@@ -234,7 +236,7 @@ public class SpatialPathologyPlugin_ implements PlugIn {
                   float dx = (xPointsGlobal[i] - xPointsGlobal[i - 1]);
                   float dy = (yPointsGlobal[i] - yPointsGlobal[i - 1]);
                   lengthLine1 = lengthLine1 + Math.sqrt(dx * dx + dy * dy);
-                 // System.out.println(lengthLine1 + Math.sqrt(dx * dx + dy * dy));
+                 System.out.println(lengthLine1 + Math.sqrt(dx * dx + dy * dy));
               }
                PolygonRoi Line1roi = new PolygonRoi(xPointsGlobal, yPointsGlobal, Roi.FREELINE);
                
@@ -564,7 +566,6 @@ public class SpatialPathologyPlugin_ implements PlugIn {
             // String timeStamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new
             // java.util.Date());
             String filePath = savedImageFilePath + imageFileName + "_" + outputFileNameTS + ".tiff";
-
             FileSaver fileSaver = new FileSaver(imp0);
 
             fileSaver.saveAsTiff(filePath);
