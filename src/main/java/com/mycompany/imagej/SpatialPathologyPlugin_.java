@@ -4,7 +4,11 @@ import java.awt.Color;
 import java.awt.Component;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashSet;
+import java.util.List;
+
 import ij.IJ;
 import ij.io.Opener;
 import ij.ImagePlus;
@@ -48,6 +52,8 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import java.util.Random;
+import java.util.Set;
+
 import ij.io.DirectoryChooser;
 import ij.io.FileSaver;
 import ij.plugin.tool.PlugInTool;
@@ -80,6 +86,7 @@ public class SpatialPathologyPlugin_ implements PlugIn {
     public Float[] userPickedCSVYCoordsGlobal;
     public float[] bottomLineArrayDistancesGlobal;
     public float[] topLineArrayDistancesGlobal;
+    public String[] MarkerTypeGlobal;
     public String imageFileName;
     public String imgFilePath;
     public Integer lineChartIterationCount = 0;
@@ -480,83 +487,163 @@ public class SpatialPathologyPlugin_ implements PlugIn {
             if (pointInputIsCSV) {
                 // Code for CSV point input
                 IJ.log("User selected CSV point input.");
+                String markerNumber = JOptionPane.showInputDialog("How many markers will be used on this image?");
+                Integer chosenMarkerNumber = Integer.parseInt(markerNumber);
+               
                 OpenDialog tablePrompt = new OpenDialog("Choose CSV File");
                 String csvFilePath = tablePrompt.getPath();
                 String csvDirectory = tablePrompt.getDirectory();
+                // Initialize a list to store each marker type's coordinates
+                List<Float[]> xCoordsPerMarker = new ArrayList<>();
+                List<Float[]> yCoordsPerMarker = new ArrayList<>();
+                List<Overlay> overlaysPerMarker = new ArrayList<>();
                 ResultsTable table = ResultsTable.open2(csvFilePath);
                 userPickedXCoordsGlobal = new Float[table.size()];
                 userPickedYCoordsGlobal = new Float[table.size()];
+                MarkerTypeGlobal = new String[table.size()];
                 float[] xCoordsAuto = new float[table.size()];
                 float[] yCoordsAuto = new float[table.size()];
-                Overlay overlay = new Overlay();
-                for (int i = 0; i < table.size(); i++) {
-                    float xCsvValue = (float) table.getValueAsDouble(table.getColumnIndex("X"), i);
-                    userPickedXCoordsGlobal[i] = xCsvValue;
-                    float yCsvValue = (float) table.getValueAsDouble(table.getColumnIndex("Y"), i);
-                    userPickedYCoordsGlobal[i] = yCsvValue;
-                    PointRoi pointRoi = new PointRoi(xCsvValue, yCsvValue);
-                    overlay.add(pointRoi);
+                // Set to keep track of processed marker types
+                Set<String> processedMarkers = new HashSet<>();
+                // Loop through each marker type
+                for (int markerIndex = 0; markerIndex < chosenMarkerNumber; markerIndex++) {
+                	   String markerName = null;
+					// Find the next unprocessed marker type
+                    for (int i = 0; i < table.size(); i++) {
+                        String currentMarkerType = table.getStringValue(table.getColumnIndex("MarkerType"), i);
+                        if (!processedMarkers.contains(currentMarkerType)) {
+                            markerName = currentMarkerType;
+                            processedMarkers.add(markerName);
+                            break;
+                        }
+                    }
+                    
+                    // Initialize arrays for this marker type
+                    Float[] xCoords = new Float[table.size()];
+                    Float[] yCoords = new Float[table.size()];
+                    Overlay overlay = new Overlay();
+
+                    // Loop through the table and extract points for this marker type
+                    for (int i = 0; i < table.size(); i++) {
+                            float xCsvValue = (float) table.getValueAsDouble(table.getColumnIndex("X"), i);
+                            float yCsvValue = (float) table.getValueAsDouble(table.getColumnIndex("Y"), i);
+                            
+                            userPickedXCoordsGlobal[i] = xCsvValue;
+                            userPickedYCoordsGlobal[i] = yCsvValue;
+                            String markerType = table.getStringValue(table.getColumnIndex("MarkerType"), i);
+                            MarkerTypeGlobal[i] = markerType;
+                            PointRoi pointRoi = new PointRoi(xCsvValue, yCsvValue);
+                            pointRoi.setStrokeColor(Color.GREEN);
+                            System.out.println(pointRoi.getStrokeColor());
+                            overlay.add(pointRoi);
+                            WindowManager.getCurrentImage().setOverlay(overlay);
+                    }
+                    
+                    // Store the coordinates and overlay for this marker type
+                    xCoordsPerMarker.add(xCoords);
+                    yCoordsPerMarker.add(yCoords);
+                    overlaysPerMarker.add(overlay);
+
+                    // Display points for this marker type on the image
+                    WindowManager.getCurrentImage().setOverlay(overlay);
+                    new WaitForUserDialog("Please click OK to confirm the points for marker type: " + markerName).show();
                 }
-                
-                WindowManager.getCurrentImage().setOverlay(overlay);
+         
                 new WaitForUserDialog("Please click OK to confirm your points").show();
                 RoiManager roiManager = RoiManager.getInstance();
                 roiManager.setVisible(true);
                 roiManager.close();
 
-            } else {
+            }  else {
                 // Code for manual point input
-                boolean pointsGood = false;
+                List<Float[]> xCoordsPerMarker = new ArrayList<>();
+                List<Float[]> yCoordsPerMarker = new ArrayList<>();
+                List<Overlay> overlaysPerMarker = new ArrayList<>();
 
-                while (pointsGood == false) {
-                    // Wait for the user to select points
-                    IJ.setTool("multipoint");
-                    new WaitForUserDialog("Select points", "Select points using the multipoint tool").show();
-                    Roi thisRoi = WindowManager.getCurrentImage().getRoi();
-                    if (thisRoi != null && thisRoi.getType() == Roi.POINT) {
-                        pointsGood = true;
-                    } else {
-                        IJ.getImage().deleteRoi();
-                        IJ.showMessage("Error!", "Retry: Wrong type of selection! Select Points");
+                // Prompt the user to input the number of markers
+                String markerNumber = JOptionPane.showInputDialog("How many markers will be used on this image?");
+                Integer chosenMarkerNumber = Integer.parseInt(markerNumber);
+
+                // Initialize global arrays with enough space
+                userPickedXCoordsGlobal = new Float[0];
+                userPickedYCoordsGlobal = new Float[0];
+                MarkerTypeGlobal = new String[0];
+
+                for (int markerIndex = 0; markerIndex < chosenMarkerNumber; markerIndex++) {
+                    String markerName = JOptionPane.showInputDialog("Enter the name for marker type " + (markerIndex + 1));
+
+                    boolean pointsGood = false;
+                    while (!pointsGood) {
+                        // Wait for the user to select points
+                        IJ.setTool("multipoint");
+                        new WaitForUserDialog("Select points for marker type: " + markerName, "Select points using the multipoint tool").show();
+                        Roi thisRoi = WindowManager.getCurrentImage().getRoi();
+                        if (thisRoi != null && thisRoi.getType() == Roi.POINT) {
+                            pointsGood = true;
+                        } else {
+                            IJ.getImage().deleteRoi();
+                            IJ.showMessage("Error!", "Retry: Wrong type of selection! Select Points");
+                        }
                     }
+
+                    PointRoi pointRoi = (PointRoi) WindowManager.getCurrentImage().getRoi();
+                    // Get the selected points as a FloatPolygon
+                    FloatPolygon floatPolygon = pointRoi.getFloatPolygon();
+
+                    // Create arrays to store the coordinates
+                    Float[] xCoords = new Float[floatPolygon.npoints];
+                    Float[] yCoords = new Float[floatPolygon.npoints];
+                    String[] markerTypes = new String[floatPolygon.npoints];
+
+                    // Populate the coordinate arrays and marker types array
+                    for (int i = 0; i < floatPolygon.npoints; i++) {
+                        xCoords[i] = floatPolygon.xpoints[i];
+                        yCoords[i] = floatPolygon.ypoints[i];
+                        markerTypes[i] = markerName;
+                    }
+
+                    // Create an overlay for the selected points
+                    Overlay overlay = new Overlay();
+                    for (int i = 0; i < floatPolygon.npoints; i++) {
+                        PointRoi point = new PointRoi(floatPolygon.xpoints[i], floatPolygon.ypoints[i]);
+                        point.setStrokeColor(Color.GREEN);
+                        overlay.add(point);
+                    }
+
+                    // Store the coordinates and overlay for this marker type
+                    xCoordsPerMarker.add(xCoords);
+                    yCoordsPerMarker.add(yCoords);
+                    overlaysPerMarker.add(overlay);
+
+                    // Update the global arrays
+                    int existingLength = userPickedXCoordsGlobal.length;
+                    int newLength = existingLength + xCoords.length;
+
+                    Float[] newXCoordsGlobal = new Float[newLength];
+                    Float[] newYCoordsGlobal = new Float[newLength];
+                    String[] newMarkerTypeGlobal = new String[newLength];
+
+                    System.arraycopy(userPickedXCoordsGlobal, 0, newXCoordsGlobal, 0, existingLength);
+                    System.arraycopy(userPickedYCoordsGlobal, 0, newYCoordsGlobal, 0, existingLength);
+                    System.arraycopy(MarkerTypeGlobal, 0, newMarkerTypeGlobal, 0, existingLength);
+
+                    System.arraycopy(xCoords, 0, newXCoordsGlobal, existingLength, xCoords.length);
+                    System.arraycopy(yCoords, 0, newYCoordsGlobal, existingLength, yCoords.length);
+                    System.arraycopy(markerTypes, 0, newMarkerTypeGlobal, existingLength, markerTypes.length);
+
+                    userPickedXCoordsGlobal = newXCoordsGlobal;
+                    userPickedYCoordsGlobal = newYCoordsGlobal;
+                    MarkerTypeGlobal = newMarkerTypeGlobal;
+
+                    // Display points for this marker type on the image
+                    WindowManager.getCurrentImage().setOverlay(overlay);
+                    new WaitForUserDialog("Please click OK to confirm the points for marker type: " + markerName).show();
                 }
 
-                PointRoi pointRoi = (PointRoi) WindowManager.getCurrentImage().getRoi();
-                // Get the selected points as a FloatPolygon
-                FloatPolygon floatPolygon = pointRoi.getFloatPolygon();
-
-                // Create an Roi from the FloatPolygon
-                Roi manualPointRoi = new PointRoi(floatPolygon.xpoints, floatPolygon.ypoints, floatPolygon.npoints);
-
-                // Add the ROI to the RoiManager
+                new WaitForUserDialog("Please click OK to confirm your points").show();
                 RoiManager roiManager = RoiManager.getInstance();
-
-                if (roiManager == null)
-                    roiManager = new RoiManager();
-
-                roiManager.addRoi(manualPointRoi);
                 roiManager.setVisible(true);
                 roiManager.close();
-
-                float[] xUserPlacedCoords = floatPolygon.xpoints;
-                float[] yUserPlacedCoords = floatPolygon.ypoints;
-                for (int i = 0; i < floatPolygon.npoints; i++) {
-                    float xCoords = xUserPlacedCoords[i];
-                    float yCoords = yUserPlacedCoords[i];
-                    System.out.println("Coordinate " + (i + 1) + ": (" + xCoords + ", " + yCoords + ")");
-                }
-
-                userPickedXCoordsGlobal = new Float[xUserPlacedCoords.length];
-                userPickedYCoordsGlobal = new Float[yUserPlacedCoords.length];
-                for (int i = 0; i < xUserPlacedCoords.length; i++) {
-                    userPickedXCoordsGlobal[i] = xUserPlacedCoords[i];
-                    System.out.println("xUserPlacedCoords[i] is " + userPickedXCoordsGlobal[i]);
-
-                }
-                for (int i = 0; i < yUserPlacedCoords.length; i++) {
-                    userPickedYCoordsGlobal[i] = yUserPlacedCoords[i];
-
-                }
             }
             
             DirectoryChooser directoryChooserImage = new DirectoryChooser("Select Folder to save your drawn Image");
@@ -650,28 +737,7 @@ public class SpatialPathologyPlugin_ implements PlugIn {
 for (int i = 0; i < distanceToDivideArray.length; i++) {
     distanceToDivide += distanceToDivideArray[i];
 }
-            /*
-             * Implementation of a .csv output that I am looking to depreciate try {
-             * FileWriter f = new FileWriter(outputFileName);
-             * f.write("Centroid Coordinates\n"); for (int i = 0; i <
-             * userPickedXCoordsGlobal.length; i++) { f.write(userPickedXCoordsGlobal[i] +
-             * "  \t" + userPickedYCoordsGlobal[i] + " \t"); f.write("\n"); }
-             * 
-             * f.
-             * write("Distances from bottom and top line for each point (left is bottom)\n"
-             * ); for (int i = 0; i < userPickedXCoordsGlobal.length; i++) {
-             * f.write(bottomLineArrayDistancesGlobal[i] + "  \t" +
-             * topLineArrayDistancesGlobal[i] + " \t"); f.write("\n"); }
-             * 
-             * f.write("Normalized distances for each point\n"); for (int i = 0; i <
-             * userPickedXCoordsGlobal.length; i++) { double normalizedDistance =
-             * bottomLineArrayDistancesGlobal[i] / (bottomLineArrayDistancesGlobal[i] +
-             * topLineArrayDistancesGlobal[i]); f.write("Point " + i + "\n");
-             * f.write(Double.toString(normalizedDistance)); f.write("\n"); }
-             * 
-             * f.close(); System.out.println("File written successfully."); } catch
-             * (IOException e) { e.printStackTrace(); }
-             */
+
             try {
                 
                 String filename = outputFileName;
@@ -689,7 +755,10 @@ for (int i = 0; i < distanceToDivideArray.length; i++) {
                 rowhead.createCell(6).setCellValue("Length of Top");
                 rowhead.createCell(7).setCellValue("Chosen Bin Interval");
                 rowhead.createCell(8).setCellValue("Average Distance between Lines");
-                System.out.println("Does this run?");
+                rowhead.createCell(9).setCellValue("Marker Type");
+                for(int i = 1; i < userPickedXCoordsGlobal.length + 1; i++) {
+                	System.out.println("Marker Type is: " + MarkerTypeGlobal[i-1]);
+                }
                 HSSFRow[] rowArray = new HSSFRow[999];
                 // All of the plus ones are to make space for the title row created above
                 for (int i = 1; i < userPickedXCoordsGlobal.length + 1; i++) {
@@ -700,7 +769,7 @@ for (int i = 0; i < distanceToDivideArray.length; i++) {
                     rowArray[i].createCell(3).setCellValue(topLineArrayDistancesGlobal[i - 1]);
                     rowArray[i].createCell(4).setCellValue(bottomLineArrayDistancesGlobal[i - 1]
                             / (bottomLineArrayDistancesGlobal[i - 1] + topLineArrayDistancesGlobal[i - 1]));
-                    
+                    rowArray[i].createCell(9).setCellValue(MarkerTypeGlobal[i-1]);
 
                 }
                 rowArray[1].createCell(5).setCellValue(lengthLine1);
@@ -735,17 +804,7 @@ for (int i = 0; i < distanceToDivideArray.length; i++) {
             }
             System.out.println("User wants to repeat macro : " + repeatInput);
 
-            // GenericDialog repeatPrompt = new GenericDialog("Batch Processing");
-            // Add a check-box to the dialog
 
-            // repeatPrompt.addCheckbox(
-            // "Check this box if you want to repeat this macro for a new image, not
-            // clicking this box and clicking ok will close the macro and generate the
-            // session histogram",
-            // false);
-            // Display the dialog
-            // repeatPrompt.showDialog();
-            // boolean repeatInput = repeatPrompt.getNextBoolean();
             if (repeatInput) {
                 // Yes Repeat
                 ApachePoiLineChart(chosenInterval);
@@ -768,15 +827,6 @@ for (int i = 0; i < distanceToDivideArray.length; i++) {
         return dateFormat.format(calendar.getTime());
     }
 
-//  public static String makeOutputFileName(String anImgFilePath) {
-//      String[] monthNames = new String[] { "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12" };
-//      Calendar calendar = Calendar.getInstance();
-//      SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy_MMdd_HHmmss");
-//      String dateTime = dateFormat.format(calendar.getTime());
-//
-//      String anOutputFileName = anImgFilePath + "_" + dateTime + "_output.xls";
-//      return anOutputFileName;
-//  }
 
     public void ApachePoiLineChart(double chosenInterval) {
         // Create a DirectoryChooser to prompt the user for a folder
@@ -801,7 +851,7 @@ for (int i = 0; i < distanceToDivideArray.length; i++) {
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy_MMdd_HHmmss");
         String dateTime = dateFormat.format(calendar.getTime());
         
-        String sheetName = "HistogramForMacroSession" + dateTime;
+        String sheetName = "MacroSessionSummary" + dateTime;
         XSSFSheet sheet = wb.createSheet(sheetName);
     
 
@@ -837,11 +887,9 @@ for (int i = 0; i < distanceToDivideArray.length; i++) {
                 
                             globalBinCountArray[(int) columnIndexRow2]++;
                             
-                            for (int i1 = 0; i1 < globalBinCountArray.length; i1++) {
-                               // System.out.println("Element at index " + i1 + ": " + globalBinCountArray[i1]);
-                            }
+                       
                             cell.setCellValue(((double)globalBinCountArray[(int) columnIndexRow2]) / lineChartIterationCount);
-                            //System.out.println("Value charted: " +  ((double)globalBinCountArray[(int) columnIndexRow2]) / lineChartIterationCount);
+                            
                         
                             
                             
@@ -854,41 +902,7 @@ for (int i = 0; i < distanceToDivideArray.length; i++) {
                     }
                }
                
-               
-               
-    
 
-            
-				/*
-				 * XSSFDrawing drawing = sheet.createDrawingPatriarch(); XSSFClientAnchor anchor
-				 * = drawing.createAnchor(0, 0, 0, 0, 0, 4, 7, 26); XSSFChart chart =
-				 * drawing.createChart(anchor); chart.setTitleText("Test");
-				 * chart.setTitleOverlay(false);
-				 * 
-				 * XDDFCategoryAxis bottomAxis = chart.createCategoryAxis(AxisPosition.BOTTOM);
-				 * bottomAxis.setTitle("Position"); XDDFValueAxis leftAxis =
-				 * chart.createValueAxis(AxisPosition.LEFT);
-				 * leftAxis.setTitle("Cells per Gland");
-				 * 
-				 * XDDFDataSource<String> Position =
-				 * XDDFDataSourcesFactory.fromStringCellRange(sheet, new CellRangeAddress(0, 0,
-				 * 0, (int) ((double) 1.0 / chosenInterval )));
-				 * 
-				 * XDDFNumericalDataSource<Double> yPositionsCentroid =
-				 * XDDFDataSourcesFactory.fromNumericCellRange(sheet, new CellRangeAddress(1, 1,
-				 * 0, (int) ((double) 1.0 / chosenInterval )));
-				 * 
-				 * XDDFLineChartData data = (XDDFLineChartData)
-				 * chart.createData(ChartTypes.LINE, bottomAxis, leftAxis);
-				 * 
-				 * XDDFLineChartData.Series series1 = (XDDFLineChartData.Series)
-				 * data.addSeries(Position, yPositionsCentroid); series1.setTitle("Area", null);
-				 * series1.setSmooth(false); series1.setMarkerStyle(MarkerStyle.SQUARE);
-				 * 
-				 * chart.plot(data);
-				 */
-            
-            //Image Specific Histogram
             
 
             // Write output to an excel file
