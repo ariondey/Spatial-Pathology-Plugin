@@ -487,74 +487,80 @@ public class SpatialPathologyPlugin_ implements PlugIn {
             if (pointInputIsCSV) {
                 // Code for CSV point input
                 IJ.log("User selected CSV point input.");
-                String markerNumber = JOptionPane.showInputDialog("How many markers will be used on this image?");
-                Integer chosenMarkerNumber = Integer.parseInt(markerNumber);
-               
-                OpenDialog tablePrompt = new OpenDialog("Choose CSV File");
-                String csvFilePath = tablePrompt.getPath();
-                String csvDirectory = tablePrompt.getDirectory();
+                
+                // Prompt for the number of CSV files
+                String csvFileNumber = JOptionPane.showInputDialog("How many CSV files will be used for this image?");
+                Integer chosenCSVFileNumber = Integer.parseInt(csvFileNumber);
+
+                // Initialize a list to store all marker types' coordinates across multiple CSVs
+                List<Float> xCoordsGlobal = new ArrayList<>();
+                List<Float> yCoordsGlobal = new ArrayList<>();
+                List<String> markerTypeGlobalList = new ArrayList<>();
+
+                // Loop through each CSV file
+                for (int fileIndex = 0; fileIndex < chosenCSVFileNumber; fileIndex++) {
+                    OpenDialog tablePrompt = new OpenDialog("Choose CSV File " + (fileIndex + 1));
+                    String csvFilePath = tablePrompt.getPath();
+                    ResultsTable table = ResultsTable.open2(csvFilePath);
+                    
+                    // Check if the "MarkerType" column exists
+                    boolean markerTypeColumnExists = table.getColumnIndex("MarkerType") != ResultsTable.COLUMN_NOT_FOUND;
+
+                    // Loop through each row in the CSV
+                    for (int i = 0; i < table.size(); i++) {
+                        float xCsvValue = (float) table.getValueAsDouble(table.getColumnIndex("X"), i);
+                        float yCsvValue = (float) table.getValueAsDouble(table.getColumnIndex("Y"), i);
+                        String markerType = markerTypeColumnExists 
+                                            ? table.getStringValue(table.getColumnIndex("MarkerType"), i) 
+                                            : "N/A";
+
+                        xCoordsGlobal.add(xCsvValue);
+                        yCoordsGlobal.add(yCsvValue);
+                        markerTypeGlobalList.add(markerType);
+                    }
+                }
+
+                // Convert lists to arrays
+                userPickedXCoordsGlobal = xCoordsGlobal.toArray(new Float[0]);
+                userPickedYCoordsGlobal = yCoordsGlobal.toArray(new Float[0]);
+                MarkerTypeGlobal = markerTypeGlobalList.toArray(new String[0]);
+
                 // Initialize a list to store each marker type's coordinates
                 List<Float[]> xCoordsPerMarker = new ArrayList<>();
                 List<Float[]> yCoordsPerMarker = new ArrayList<>();
                 List<Overlay> overlaysPerMarker = new ArrayList<>();
-                ResultsTable table = ResultsTable.open2(csvFilePath);
-                userPickedXCoordsGlobal = new Float[table.size()];
-                userPickedYCoordsGlobal = new Float[table.size()];
-                MarkerTypeGlobal = new String[table.size()];
-                float[] xCoordsAuto = new float[table.size()];
-                float[] yCoordsAuto = new float[table.size()];
-                // Set to keep track of processed marker types
-                Set<String> processedMarkers = new HashSet<>();
+
+                // Create a global overlay to display all points
+                Overlay globalOverlay = new Overlay();
+
                 // Loop through each marker type
-                for (int markerIndex = 0; markerIndex < chosenMarkerNumber; markerIndex++) {
-                	   String markerName = null;
-					// Find the next unprocessed marker type
-                    for (int i = 0; i < table.size(); i++) {
-                        String currentMarkerType = table.getStringValue(table.getColumnIndex("MarkerType"), i);
-                        if (!processedMarkers.contains(currentMarkerType)) {
-                            markerName = currentMarkerType;
-                            processedMarkers.add(markerName);
-                            break;
+                for (String markerType : new HashSet<>(markerTypeGlobalList)) {
+                    // Collect coordinates for this marker type
+                    List<Float> xCoords = new ArrayList<>();
+                    List<Float> yCoords = new ArrayList<>();
+
+                    for (int j = 0; j < xCoordsGlobal.size(); j++) {
+                        if (markerType.equals(MarkerTypeGlobal[j])) {
+                            xCoords.add(xCoordsGlobal.get(j));
+                            yCoords.add(yCoordsGlobal.get(j));
+                            PointRoi point = new PointRoi(xCoordsGlobal.get(j), yCoordsGlobal.get(j));
+                            
+                            globalOverlay.add(point);
                         }
                     }
-                    
-                    // Initialize arrays for this marker type
-                    Float[] xCoords = new Float[table.size()];
-                    Float[] yCoords = new Float[table.size()];
-                    Overlay overlay = new Overlay();
 
-                    // Loop through the table and extract points for this marker type
-                    for (int i = 0; i < table.size(); i++) {
-                            float xCsvValue = (float) table.getValueAsDouble(table.getColumnIndex("X"), i);
-                            float yCsvValue = (float) table.getValueAsDouble(table.getColumnIndex("Y"), i);
-                            
-                            userPickedXCoordsGlobal[i] = xCsvValue;
-                            userPickedYCoordsGlobal[i] = yCsvValue;
-                            String markerType = table.getStringValue(table.getColumnIndex("MarkerType"), i);
-                            MarkerTypeGlobal[i] = markerType;
-                            PointRoi pointRoi = new PointRoi(xCsvValue, yCsvValue);
-                            pointRoi.setStrokeColor(Color.GREEN);
-                            System.out.println(pointRoi.getStrokeColor());
-                            overlay.add(pointRoi);
-                            WindowManager.getCurrentImage().setOverlay(overlay);
-                    }
-                    
-                    // Store the coordinates and overlay for this marker type
-                    xCoordsPerMarker.add(xCoords);
-                    yCoordsPerMarker.add(yCoords);
-                    overlaysPerMarker.add(overlay);
-
-                    // Display points for this marker type on the image
-                    WindowManager.getCurrentImage().setOverlay(overlay);
-                    new WaitForUserDialog("Please click OK to confirm the points for marker type: " + markerName).show();
+                    // Store the coordinates for this marker type
+                    xCoordsPerMarker.add(xCoords.toArray(new Float[0]));
+                    yCoordsPerMarker.add(yCoords.toArray(new Float[0]));
                 }
-         
+
+                // Display all points on the image
+                WindowManager.getCurrentImage().setOverlay(globalOverlay);
                 new WaitForUserDialog("Please click OK to confirm your points").show();
                 RoiManager roiManager = RoiManager.getInstance();
                 roiManager.setVisible(true);
                 roiManager.close();
-
-            }  else {
+            } else {
                 // Code for manual point input
                 List<Float[]> xCoordsPerMarker = new ArrayList<>();
                 List<Float[]> yCoordsPerMarker = new ArrayList<>();
@@ -568,6 +574,9 @@ public class SpatialPathologyPlugin_ implements PlugIn {
                 userPickedXCoordsGlobal = new Float[0];
                 userPickedYCoordsGlobal = new Float[0];
                 MarkerTypeGlobal = new String[0];
+
+                // Create a global overlay to display all points
+                Overlay globalOverlay = new Overlay();
 
                 for (int markerIndex = 0; markerIndex < chosenMarkerNumber; markerIndex++) {
                     String markerName = JOptionPane.showInputDialog("Enter the name for marker type " + (markerIndex + 1));
@@ -602,18 +611,16 @@ public class SpatialPathologyPlugin_ implements PlugIn {
                         markerTypes[i] = markerName;
                     }
 
-                    // Create an overlay for the selected points
-                    Overlay overlay = new Overlay();
+                    // Add points to the global overlay
                     for (int i = 0; i < floatPolygon.npoints; i++) {
                         PointRoi point = new PointRoi(floatPolygon.xpoints[i], floatPolygon.ypoints[i]);
                         point.setStrokeColor(Color.GREEN);
-                        overlay.add(point);
+                        globalOverlay.add(point);
                     }
 
-                    // Store the coordinates and overlay for this marker type
+                    // Store the coordinates and marker type
                     xCoordsPerMarker.add(xCoords);
                     yCoordsPerMarker.add(yCoords);
-                    overlaysPerMarker.add(overlay);
 
                     // Update the global arrays
                     int existingLength = userPickedXCoordsGlobal.length;
@@ -636,7 +643,7 @@ public class SpatialPathologyPlugin_ implements PlugIn {
                     MarkerTypeGlobal = newMarkerTypeGlobal;
 
                     // Display points for this marker type on the image
-                    WindowManager.getCurrentImage().setOverlay(overlay);
+                    WindowManager.getCurrentImage().setOverlay(globalOverlay);
                     new WaitForUserDialog("Please click OK to confirm the points for marker type: " + markerName).show();
                 }
 
@@ -645,6 +652,10 @@ public class SpatialPathologyPlugin_ implements PlugIn {
                 roiManager.setVisible(true);
                 roiManager.close();
             }
+
+            // Display all points on the image for both CSV and manual input
+            //WindowManager.getCurrentImage().setOverlay(globalOverlay);
+            new WaitForUserDialog("Please click OK to confirm all your points").show();
             
             DirectoryChooser directoryChooserImage = new DirectoryChooser("Select Folder to save your drawn Image");
             String savedImageFilePath = directoryChooserImage.getDirectory();
